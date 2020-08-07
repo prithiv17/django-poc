@@ -78,6 +78,9 @@ WSGI_APPLICATION = 'test_poc.wsgi.application'
 DATABASES = {
     'default': {        
         'ENGINE': 'django.db.backends.mysql',
+        'OPTIONS': {
+            'sql_mode': 'traditional',
+        },
         'NAME': 'test_poc',
         'USER': 'root',
         'PASSWORD':'',
