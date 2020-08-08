@@ -68,4 +68,7 @@ class ListUsers(APIView):
         df = pd.read_excel(file_name)
         df = df.fillna(method='ffill')
         file_data = df.to_dict(orient='record');
+        for key,value in enumerate(file_data):
+            value['Over all Skills'] = value['Over all Skills'].split(',');
+            file_data[key] = value;
         return Response(file_data);
