@@ -1,7 +1,35 @@
 from django.shortcuts import render
-from rest_framework import viewsets
-from .serializer import EmpdetailsSerializer
-from .models import Empdetails
+from rest_framework import status, viewsets
+from .serializer import EmpdetailsSerializer, CustomerDetailsSerializer
+from .models import Empdetails, CustomerDetails
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+import os
+from django.conf import settings
+
+class CustomerDetailsView(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to create/update/view customer.
+    """
+    queryset = CustomerDetails.objects.all()
+    serializer_class = CustomerDetailsSerializer
+    def create(self, request, *args, **kwargs):
+        """
+            Create a list of model instances if a list is provides or a
+            single model instance otherwise.
+        """
+        data = request.data
+        if isinstance(data, list):
+            serializer = self.get_serializer(data=request.data, many=True)
+        else:
+            serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED,
+                    headers=headers)
+
 
 # Create your views here.
 
@@ -11,6 +39,32 @@ class EmpdetailsView(viewsets.ModelViewSet):
     """
     queryset = Empdetails.objects.all()
     serializer_class = EmpdetailsSerializer
+
+class EmpdashboardView(APIView):
+    def get(self, request):
+        dashboard_details = {};
+        emp_details = Empdetails.objects.all();
+        serializer = EmpdetailsSerializer(emp_details, many=True);
+        dashboard_details["emp_count"] = len(serializer.data);
+        dashboard_details["grade_count"] = {};
+        dashboard_details["subgrade_count"] = {};
+        dashboard_details["skills_count"] = {};
+        for dic in serializer.data:
+            if dic['grade'] in dashboard_details["grade_count"]:
+                dashboard_details["grade_count"][dic['grade']].append(dic['grade']);
+            else:
+                dashboard_details["grade_count"][dic['grade']] = [dic['grade']];
+            if dic['sub_grade'] in dashboard_details["subgrade_count"]:
+                dashboard_details["subgrade_count"][dic['sub_grade']].append(dic['sub_grade']);
+            else:
+                dashboard_details["subgrade_count"][dic['sub_grade']] = [dic['sub_grade']];
+            for skl in dic['skills'].split(','):
+                if skl in dashboard_details["skills_count"]:
+                    dashboard_details["skills_count"][skl].append(skl);
+                else:
+                    dashboard_details["skills_count"][skl] = [skl];
+        print(dashboard_details)
+        return Response({"dashboard_details": dashboard_details});
 
 from django.shortcuts import render
 import openpyxl
@@ -40,12 +94,6 @@ def fileUpload(request):
             excel_data.append(row_data)
 
         return render(request, 'test_app/index.html', {"excel_data":excel_data})
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-import os
-from django.conf import settings
-
 
 class ListUsers(APIView):
     """
